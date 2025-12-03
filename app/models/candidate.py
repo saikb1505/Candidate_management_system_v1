@@ -19,7 +19,11 @@ class Candidate(Base):
     filename = Column(String, nullable=False)
     file_path = Column(String, nullable=False)
     file_size = Column(Integer, nullable=False)
-    status = Column(SQLEnum(CandidateStatus), default=CandidateStatus.UPLOADED, nullable=False)
+    status = Column(
+        SQLEnum(CandidateStatus, values_callable=lambda x: [e.value for e in x]),
+        default=CandidateStatus.UPLOADED,
+        nullable=False
+    )
 
     # Candidate information from resume parsing
     name = Column(String, nullable=True)
