@@ -26,13 +26,17 @@ def parse_boolean_search(search_query: str):
         "Ruby and Python" -> [["Ruby", "Python"]] (AND group)
         "Ruby or Python" -> [["Ruby"], ["Python"]] (OR groups)
         "Ruby and Python or Java" -> [["Ruby", "Python"], ["Java"]] (AND group OR single term)
+        "(Python and React) or Ruby" -> [["Python", "React"], ["Ruby"]] (grouped AND OR single term)
 
     Returns:
         List of lists where each inner list represents skills that must ALL be present (AND),
         and the outer list represents alternatives (OR).
     """
-    # Normalize the query
+    # Normalize the query - remove extra spaces and strip
     query = search_query.strip()
+
+    # Remove parentheses - they're just for visual grouping
+    query = query.replace('(', '').replace(')', '')
 
     # Split by 'or' (case-insensitive) to get OR groups
     or_groups = re.split(r'\s+or\s+', query, flags=re.IGNORECASE)
