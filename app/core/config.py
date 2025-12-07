@@ -16,16 +16,16 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    # Database
+    # Database (no default – force via env)
     DATABASE_URL: str
     DATABASE_URL_SYNC: str
 
-    # Redis
+    # Redis (default for local dev; override in Railway env)
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    # Celery
+    # Celery (use Redis by default; override in Railway env)
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"
-    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
 
     # OpenAI
     OPENAI_API_KEY: str
