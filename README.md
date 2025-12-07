@@ -1,6 +1,6 @@
 # Resume Parser API
 
-A production-ready FastAPI application for parsing resumes using OpenAI, with JWT authentication, role-based access control, and background job processing.
+A production-ready FastAPI application for parsing resumes using OpenAI, with JWT authentication and role-based access control.
 
 ## Features
 
@@ -11,7 +11,6 @@ A production-ready FastAPI application for parsing resumes using OpenAI, with JW
   - Recruiter: Can upload and view resumes
   - Viewer: Read-only access
 - **Resume Upload & Parsing**: Upload resumes (PDF, DOC, DOCX) and automatically parse with OpenAI
-- **Background Job Processing**: Asynchronous resume processing with Celery
 - **PostgreSQL Database**: Robust data storage with async support
 - **Database Migrations**: Alembic for schema management
 - **Production-Ready**:
@@ -26,8 +25,6 @@ A production-ready FastAPI application for parsing resumes using OpenAI, with JW
 - **PostgreSQL**: Primary database
 - **SQLAlchemy**: ORM with async support
 - **Alembic**: Database migrations
-- **Celery**: Background task queue
-- **Redis**: Message broker and result backend
 - **OpenAI**: Resume parsing
 - **JWT**: Authentication
 
@@ -56,8 +53,7 @@ resume_parser_api/
 │   │   ├── auth.py                 # Auth schemas
 │   │   └── resume.py               # Resume schemas
 │   ├── services/
-│   │   ├── celery_app.py           # Celery configuration
-│   │   ├── celery_tasks.py         # Background tasks
+│   │   ├── candidate_service.py    # Candidate processing service
 │   │   └── openai_service.py       # OpenAI integration
 │   ├── utils/
 │   │   └── file_handler.py         # File operations
@@ -80,9 +76,6 @@ You need to have the following installed on your system:
 - **PostgreSQL**: [Installation Guide](https://www.postgresql.org/download/)
   - Ubuntu/Debian: `sudo apt-get install postgresql postgresql-contrib`
   - macOS: `brew install postgresql`
-- **Redis**: [Installation Guide](https://redis.io/download)
-  - Ubuntu/Debian: `sudo apt-get install redis-server`
-  - macOS: `brew install redis`
 
 ### Quick Setup
 
@@ -119,10 +112,6 @@ SECRET_KEY=your-secret-key-here
 
 # Database (adjust if using custom setup)
 DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/resume_parser
-DATABASE_URL_SYNC=postgresql://postgres:password@localhost:5432/resume_parser
-
-# Redis
-REDIS_URL=redis://localhost:6379/0
 ```
 
 #### 2. Create and activate virtual environment
@@ -157,20 +146,7 @@ Create the database:
 createdb resume_parser
 ```
 
-#### 5. Start Redis
-
-```bash
-# Ubuntu/Debian
-sudo service redis-server start
-
-# macOS
-brew services start redis
-
-# Or run in foreground
-redis-server
-```
-
-#### 6. Run database migrations
+#### 5. Run database migrations
 
 Make sure your virtual environment is activated (`source venv/bin/activate`)
 
@@ -178,34 +154,25 @@ Make sure your virtual environment is activated (`source venv/bin/activate`)
 alembic upgrade head
 ```
 
-#### 7. Create required directories
+#### 6. Create required directories
 
 ```bash
 mkdir -p uploads logs
 ```
 
-#### 8. Create an admin user
+#### 7. Create an admin user
 
 ```bash
 python -m scripts.create_admin
 ```
 
-#### 9. Start the API server
+#### 8. Start the API server
 
 Make sure your virtual environment is activated:
 
 ```bash
 source venv/bin/activate
 uvicorn app.main:app --reload
-```
-
-#### 10. Start Celery worker (in another terminal)
-
-Activate the virtual environment first:
-
-```bash
-source venv/bin/activate
-celery -A app.services.celery_app worker --loglevel=info
 ```
 
 **Note**: Always activate the virtual environment (`source venv/bin/activate`) before running any Python commands.
@@ -227,14 +194,14 @@ celery -A app.services.celery_app worker --loglevel=info
 - `PUT /api/v1/users/{user_id}` - Update user (Admin only)
 - `DELETE /api/v1/users/{user_id}` - Delete user (Admin only)
 
-### Resumes
+### Candidates
 
-- `POST /api/v1/resumes/upload` - Upload resume (Recruiter+)
-- `GET /api/v1/resumes/` - List all resumes
-- `GET /api/v1/resumes/{resume_id}` - Get resume details
-- `DELETE /api/v1/resumes/{resume_id}` - Delete resume (Recruiter+)
-- `GET /api/v1/resumes/search/by-skill?skill={skill}` - Search by skill
-- `GET /api/v1/resumes/search/by-email?email={email}` - Search by email
+- `POST /api/v1/candidates/upload` - Upload and parse resume (Recruiter+)
+- `GET /api/v1/candidates/` - List all candidates
+- `GET /api/v1/candidates/{candidate_id}` - Get candidate details
+- `DELETE /api/v1/candidates/{candidate_id}` - Delete candidate (Recruiter+)
+- `GET /api/v1/candidates/search/by-skill?skill={skill}` - Search by skill
+- `GET /api/v1/candidates/search/by-email?email={email}` - Search by email
 
 ### Health Check
 
@@ -279,22 +246,17 @@ Save the `access_token` from the response.
 ### 3. Upload a resume
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/resumes/upload" \
+curl -X POST "http://localhost:8000/api/v1/candidates/upload" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
   -F "file=@/path/to/resume.pdf"
 ```
 
-The resume will be processed in the background. Check status:
-
-```bash
-curl -X GET "http://localhost:8000/api/v1/resumes/{resume_id}" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
+The resume will be processed immediately and the parsed candidate data will be returned in the response.
 
 ## User Roles & Permissions
 
-| Role | Upload Resumes | View Resumes | Delete Resumes | Manage Users |
-|------|---------------|--------------|----------------|--------------|
+| Role | Upload Candidates | View Candidates | Delete Candidates | Manage Users |
+|------|------------------|----------------|-------------------|--------------|
 | Viewer | ❌ | ✅ | ❌ | ❌ |
 | Recruiter | ✅ | ✅ | ✅ | ❌ |
 | HR Manager | ✅ | ✅ | ✅ | ✅ |
@@ -373,22 +335,6 @@ Test connection:
 psql -h localhost -U postgres -d resume_parser
 ```
 
-### Celery Worker Issues
-
-Check if Redis is running:
-```bash
-# Ubuntu/Debian
-sudo service redis-server status
-
-# macOS
-brew services list | grep redis
-
-# Test connection
-redis-cli ping
-```
-
-View Celery logs in the terminal where you started the worker.
-
 ### OpenAI API Errors
 
 - Verify `OPENAI_API_KEY` is set correctly in `.env`
@@ -401,7 +347,7 @@ View Celery logs in the terminal where you started the worker.
 2. Set `DEBUG=False` in production
 3. Use a production WSGI server (included: uvicorn)
 4. Set up proper CORS origins
-5. Use managed PostgreSQL and Redis services
+5. Use managed PostgreSQL service
 6. Implement backup strategy
 7. Set up monitoring and alerting
 8. Use HTTPS with valid certificates

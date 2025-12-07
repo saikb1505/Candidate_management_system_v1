@@ -9,7 +9,7 @@ from app.models.candidate import Candidate, CandidateStatus
 from app.models.user import User
 from app.core.deps import get_current_user, require_recruiter_or_above
 from app.utils.file_handler import save_upload_file, extract_text_from_file, delete_file
-from app.services.celery_tasks import process_candidate_resume_task
+from app.services.candidate_service import process_candidate_resume
 import logging
 import re
 
@@ -53,29 +53,38 @@ def parse_boolean_search(search_query: str):
     return result
 
 
-@router.post("/upload", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/upload", status_code=status.HTTP_201_CREATED, response_model=CandidateSchema)
 async def upload_candidate_resume(
     file: UploadFile = File(...),
     current_user: User = Depends(require_recruiter_or_above),
+    db: AsyncSession = Depends(get_db),
 ):
     """
-    Upload a candidate's resume file. File will be processed asynchronously.
-    Candidate profile will be created or updated after parsing completes.
+    Upload and process a candidate's resume file.
+    The file is parsed immediately and candidate profile is created or updated.
     Requires Recruiter role or higher.
     """
     try:
         # Save file
         file_path, file_size = await save_upload_file(file)
 
-        # Trigger background processing (candidate will be created/updated in the task)
-        process_candidate_resume_task.delay(file_path, file.filename, file_size, current_user.id)
+        # Process resume synchronously
+        candidate = await process_candidate_resume(
+            db=db,
+            file_path=file_path,
+            filename=file.filename,
+            file_size=file_size,
+            uploaded_by=current_user.id,
+        )
 
-        return {
-            "message": "Candidate resume uploaded successfully and is being processed",
-            "filename": file.filename,
-            "status": "processing"
-        }
+        return candidate
 
+    except ValueError as e:
+        logger.error(f"Error processing candidate resume: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error processing candidate resume: {str(e)}",
+        )
     except Exception as e:
         logger.error(f"Error uploading candidate resume: {e}")
         raise HTTPException(

@@ -18,14 +18,12 @@ class Settings(BaseSettings):
 
     # Database (no default – force via env)
     DATABASE_URL: str
-    DATABASE_URL_SYNC: str
+    DATABASE_URL_SYNC: str | None = None
 
-    # Redis (default for local dev; override in Railway env)
-    REDIS_URL: str = "redis://localhost:6379/0"
-
-    # Celery (use Redis by default; override in Railway env)
-    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
-    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
+    # Redis & Celery
+    REDIS_URL: str | None = None
+    CELERY_BROKER_URL: str | None = None
+    CELERY_RESULT_BACKEND: str | None = None
 
     # OpenAI
     OPENAI_API_KEY: str
