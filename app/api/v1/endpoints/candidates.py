@@ -109,8 +109,9 @@ async def list_candidates(
         skip: Number of records to skip (for pagination)
         limit: Maximum number of records to return
         status_filter: Filter by candidate status
-        skills: Boolean search query for skills (e.g., "Ruby and Python", "Java or Python", "Ruby and Python or Java")
-                - Use "and" to require all skills to be present
+        skills: Boolean search query for skills OR designations (e.g., "Ruby and Python", "Java or Python", "Ruby and Python or Java")
+                - Searches in both skills and designations fields
+                - Use "and" to require all terms to be present
                 - Use "or" to match any of the alternatives
                 - Supports partial matching (e.g., "Ruby" matches "Ruby on Rails")
     """
@@ -128,22 +129,29 @@ async def list_candidates(
         # Build the SQL conditions
         # Each OR group is a list of AND terms
         # Example: [["Ruby", "Python"], ["Java"]] means (Ruby AND Python) OR (Java)
+        # Each term searches in both skills AND designations fields
         if or_groups:
             or_conditions = []
 
             for and_terms in or_groups:
                 if len(and_terms) == 1:
-                    # Single term, just add a LIKE condition
-                    skill = and_terms[0]
+                    # Single term, search in both skills OR designations
+                    term = and_terms[0]
                     or_conditions.append(
-                        func.lower(cast(Candidate.skills, String)).like(f'%{skill.lower()}%')
+                        or_(
+                            func.lower(cast(Candidate.skills, String)).like(f'%{term.lower()}%'),
+                            func.lower(cast(Candidate.designations, String)).like(f'%{term.lower()}%')
+                        )
                     )
                 else:
-                    # Multiple terms with AND - all must be present
+                    # Multiple terms with AND - all must be present (in either skills or designations)
                     and_conditions = []
-                    for skill in and_terms:
+                    for term in and_terms:
                         and_conditions.append(
-                            func.lower(cast(Candidate.skills, String)).like(f'%{skill.lower()}%')
+                            or_(
+                                func.lower(cast(Candidate.skills, String)).like(f'%{term.lower()}%'),
+                                func.lower(cast(Candidate.designations, String)).like(f'%{term.lower()}%')
+                            )
                         )
                     # Combine with AND
                     or_conditions.append(and_(*and_conditions))
