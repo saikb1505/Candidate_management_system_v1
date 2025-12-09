@@ -89,7 +89,7 @@ If is_resume is true, fill all fields with extracted data.
         if not is_resume:
             document_type = result.get("document_type", "unknown")
             error_reason = result.get("error_reason", "Document does not appear to be a resume")
-            raise ValueError(f"Invalid document type: This appears to be a {document_type}, not a resume. {error_reason}")
+            raise ValueError(f"Document is not a valid resume")
 
         # Extract candidate data
         candidate_data = {
