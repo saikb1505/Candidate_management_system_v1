@@ -45,8 +45,8 @@ async def process_candidate_resume(
         if not resume_text:
             raise ValueError("No text extracted from candidate resume")
 
-        # Parse with OpenAI
-        logger.info(f"Parsing candidate resume {filename} with OpenAI")
+        # Validate and parse with OpenAI (validation happens inside the function)
+        logger.info(f"Validating and parsing candidate resume {filename} with OpenAI")
         parsed_data = await parse_candidate_resume_with_openai(resume_text)
 
         # Check if a candidate with the same email or phone already exists
