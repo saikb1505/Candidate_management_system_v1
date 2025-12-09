@@ -87,6 +87,7 @@ async def process_candidate_resume(
             existing_candidate.email = parsed_data.email
             existing_candidate.phone = parsed_data.phone
             existing_candidate.skills = parsed_data.skills
+            existing_candidate.designations = parsed_data.designations
             existing_candidate.domain_knowledge = parsed_data.domain_knowledge
             existing_candidate.raw_parsed_data = parsed_data.model_dump()
             existing_candidate.status = CandidateStatus.COMPLETED
@@ -127,6 +128,7 @@ async def process_candidate_resume(
                 email=parsed_data.email,
                 phone=parsed_data.phone,
                 skills=parsed_data.skills,
+                designations=parsed_data.designations,
                 domain_knowledge=parsed_data.domain_knowledge,
                 raw_parsed_data=parsed_data.model_dump(),
                 processed_at=datetime.utcnow(),

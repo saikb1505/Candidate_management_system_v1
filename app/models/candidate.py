@@ -30,6 +30,7 @@ class Candidate(Base):
     email = Column(String, nullable=True, index=True)
     phone = Column(String, nullable=True)
     skills = Column(JSON, nullable=True)  # List of skills
+    designations = Column(JSON, nullable=True)  # List of job titles/positions held
     domain_knowledge = Column(Text, nullable=True)
     raw_parsed_data = Column(JSON, nullable=True)  # Full OpenAI response
 

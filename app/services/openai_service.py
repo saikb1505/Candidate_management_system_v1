@@ -26,18 +26,20 @@ You are a candidate resume parser. Extract the following information from the re
 2. email: Email address
 3. phone: Phone number
 4. skills: Array of technical and professional skills
-5. domain_knowledge: Summary of the candidate's domain expertise and industry knowledge
+5. designations: Array of ALL job titles/positions the candidate has held throughout their career (e.g., "Software Engineer", "Senior Developer", "Team Lead")
+6. domain_knowledge: Summary of the candidate's domain expertise and industry knowledge
 
 Resume Text:
 {resume_text}
 
-Return ONLY a valid JSON object with the above fields. If a field is not found, use null for strings or empty array for skills.
+Return ONLY a valid JSON object with the above fields. If a field is not found, use null for strings or empty array for skills/designations.
 Example format:
 {{
     "name": "John Doe",
     "email": "john@example.com",
     "phone": "+1234567890",
     "skills": ["Python", "FastAPI", "PostgreSQL"],
+    "designations": ["Software Engineer", "Senior Backend Developer", "Technical Lead"],
     "domain_knowledge": "5 years of experience in backend development and API design"
 }}
 """

@@ -19,6 +19,7 @@ class CandidateUpdate(BaseModel):
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     skills: Optional[List[str]] = None
+    designations: Optional[List[str]] = None
     domain_knowledge: Optional[str] = None
     error_message: Optional[str] = None
 
@@ -32,6 +33,7 @@ class CandidateInDB(CandidateBase):
     email: Optional[str]
     phone: Optional[str]
     skills: Optional[List[str]]
+    designations: Optional[List[str]]
     domain_knowledge: Optional[str]
     uploaded_by: int
     error_message: Optional[str]
@@ -53,4 +55,5 @@ class ParsedCandidateData(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     skills: List[str] = []
+    designations: List[str] = []
     domain_knowledge: Optional[str] = None
