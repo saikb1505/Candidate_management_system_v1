@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, computed_field
 from typing import Optional, List
 from datetime import datetime
 from app.models.candidate import CandidateStatus
@@ -46,7 +46,11 @@ class CandidateInDB(CandidateBase):
 
 
 class Candidate(CandidateInDB):
-    pass
+    @computed_field
+    @property
+    def download_url(self) -> str:
+        """Generate download URL for the resume"""
+        return f"/candidates/{self.id}/download"
 
 
 class ParsedCandidateData(BaseModel):

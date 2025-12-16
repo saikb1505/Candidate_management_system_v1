@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, and_, func, cast, String
 from typing import List, Optional
 from datetime import datetime
+from pathlib import Path
+import os
 from app.db.base import get_db
 from app.schemas.candidate import Candidate as CandidateSchema, ParsedCandidateData
 from app.models.candidate import Candidate, CandidateStatus
@@ -184,6 +187,40 @@ async def get_candidate(
         )
 
     return candidate
+
+
+@router.get("/{candidate_id}/download")
+async def download_candidate_resume(
+    candidate_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Download candidate's resume file"""
+    result = await db.execute(select(Candidate).where(Candidate.id == candidate_id))
+    candidate = result.scalar_one_or_none()
+
+    if not candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate not found",
+        )
+
+    # Check if file exists
+    if not os.path.exists(candidate.file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Resume file not found",
+        )
+
+    # Get the original filename from the candidate
+    filename = candidate.filename
+
+    # Return file as downloadable
+    return FileResponse(
+        path=candidate.file_path,
+        filename=filename,
+        media_type="application/octet-stream",
+    )
 
 
 @router.delete("/{candidate_id}", status_code=status.HTTP_204_NO_CONTENT)
