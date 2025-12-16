@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 from typing import List
 from datetime import datetime
 
@@ -49,7 +50,20 @@ async def create_candidate_note(
     await db.commit()
     await db.refresh(note)
 
-    return note
+    # Add created_by field (user's full name or username)
+    note_dict = {
+        "id": note.id,
+        "candidate_id": note.candidate_id,
+        "user_id": note.user_id,
+        "note": note.note,
+        "previous_status": note.previous_status,
+        "new_status": note.new_status,
+        "created_at": note.created_at,
+        "updated_at": note.updated_at,
+        "created_by": current_user.full_name or current_user.username,
+    }
+
+    return note_dict
 
 
 @router.get("/{candidate_id}/notes", response_model=List[CandidateNote])
@@ -72,15 +86,32 @@ async def get_candidate_notes(
             detail="Candidate not found",
         )
 
-    # Get all notes for this candidate
+    # Get all notes for this candidate with user information
     result = await db.execute(
         select(CandidateNoteModel)
+        .options(joinedload(CandidateNoteModel.user))
         .where(CandidateNoteModel.candidate_id == candidate_id)
         .order_by(CandidateNoteModel.created_at.asc())
     )
-    notes = result.scalars().all()
+    notes = result.unique().scalars().all()
 
-    return notes
+    # Transform to include created_by field
+    notes_response = []
+    for note in notes:
+        note_dict = {
+            "id": note.id,
+            "candidate_id": note.candidate_id,
+            "user_id": note.user_id,
+            "note": note.note,
+            "previous_status": note.previous_status,
+            "new_status": note.new_status,
+            "created_at": note.created_at,
+            "updated_at": note.updated_at,
+            "created_by": note.user.full_name or note.user.username,
+        }
+        notes_response.append(note_dict)
+
+    return notes_response
 
 
 @router.get("/notes/{note_id}", response_model=CandidateNote)
@@ -91,9 +122,11 @@ async def get_note(
 ):
     """Get a specific note by ID"""
     result = await db.execute(
-        select(CandidateNoteModel).where(CandidateNoteModel.id == note_id)
+        select(CandidateNoteModel)
+        .options(joinedload(CandidateNoteModel.user))
+        .where(CandidateNoteModel.id == note_id)
     )
-    note = result.scalar_one_or_none()
+    note = result.unique().scalar_one_or_none()
 
     if not note:
         raise HTTPException(
@@ -101,7 +134,20 @@ async def get_note(
             detail="Note not found",
         )
 
-    return note
+    # Transform to include created_by field
+    note_dict = {
+        "id": note.id,
+        "candidate_id": note.candidate_id,
+        "user_id": note.user_id,
+        "note": note.note,
+        "previous_status": note.previous_status,
+        "new_status": note.new_status,
+        "created_at": note.created_at,
+        "updated_at": note.updated_at,
+        "created_by": note.user.full_name or note.user.username,
+    }
+
+    return note_dict
 
 
 @router.patch("/notes/{note_id}", response_model=CandidateNote)
@@ -116,9 +162,11 @@ async def update_note(
     Users can only update their own notes, unless they are recruiter or above.
     """
     result = await db.execute(
-        select(CandidateNoteModel).where(CandidateNoteModel.id == note_id)
+        select(CandidateNoteModel)
+        .options(joinedload(CandidateNoteModel.user))
+        .where(CandidateNoteModel.id == note_id)
     )
-    note = result.scalar_one_or_none()
+    note = result.unique().scalar_one_or_none()
 
     if not note:
         raise HTTPException(
@@ -141,7 +189,20 @@ async def update_note(
     await db.commit()
     await db.refresh(note)
 
-    return note
+    # Transform to include created_by field
+    note_dict = {
+        "id": note.id,
+        "candidate_id": note.candidate_id,
+        "user_id": note.user_id,
+        "note": note.note,
+        "previous_status": note.previous_status,
+        "new_status": note.new_status,
+        "created_at": note.created_at,
+        "updated_at": note.updated_at,
+        "created_by": note.user.full_name or note.user.username,
+    }
+
+    return note_dict
 
 
 @router.delete("/notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 from typing import Optional
 from datetime import datetime
 
@@ -27,6 +27,7 @@ class CandidateNote(CandidateNoteBase):
     new_status: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    created_by: str  # User's full name or username
 
     class Config:
         from_attributes = True
