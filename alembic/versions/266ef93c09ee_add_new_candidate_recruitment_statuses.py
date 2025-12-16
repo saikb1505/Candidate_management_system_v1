@@ -7,6 +7,7 @@ Create Date: 2025-12-16 15:33:00.906261
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import text
 
 
 # revision identifiers, used by Alembic.
@@ -17,13 +18,43 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Add new values to the candidatestatus enum
-    op.execute("ALTER TYPE candidatestatus ADD VALUE IF NOT EXISTS 'reviewing'")
-    op.execute("ALTER TYPE candidatestatus ADD VALUE IF NOT EXISTS 'callback_requested'")
-    op.execute("ALTER TYPE candidatestatus ADD VALUE IF NOT EXISTS 'initial_screening_completed'")
-    op.execute("ALTER TYPE candidatestatus ADD VALUE IF NOT EXISTS 'interview_scheduled'")
-    op.execute("ALTER TYPE candidatestatus ADD VALUE IF NOT EXISTS 'selected'")
-    op.execute("ALTER TYPE candidatestatus ADD VALUE IF NOT EXISTS 'rejected'")
+    # PostgreSQL doesn't allow adding enum values in a transaction.
+    # We recreate the enum type with all values (old + new)
+
+    # Create a new enum type with all values
+    op.execute("""
+        CREATE TYPE candidatestatus_new AS ENUM (
+            'uploaded',
+            'processing',
+            'completed',
+            'failed',
+            'reviewing',
+            'callback_requested',
+            'initial_screening_completed',
+            'interview_scheduled',
+            'selected',
+            'rejected'
+        )
+    """)
+
+    # Drop the default constraint temporarily
+    op.execute("ALTER TABLE candidates ALTER COLUMN status DROP DEFAULT")
+
+    # Alter the column to use the new enum type
+    op.execute("""
+        ALTER TABLE candidates
+        ALTER COLUMN status TYPE candidatestatus_new
+        USING (status::text::candidatestatus_new)
+    """)
+
+    # Drop the old enum type
+    op.execute("DROP TYPE candidatestatus")
+
+    # Rename the new enum type to the original name
+    op.execute("ALTER TYPE candidatestatus_new RENAME TO candidatestatus")
+
+    # Re-add the default constraint
+    op.execute("ALTER TABLE candidates ALTER COLUMN status SET DEFAULT 'uploaded'::candidatestatus")
 
 
 def downgrade() -> None:
