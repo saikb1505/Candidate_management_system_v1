@@ -10,6 +10,12 @@ class CandidateStatus(str, enum.Enum):
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
+    REVIEWING = "reviewing"
+    CALLBACK_REQUESTED = "callback_requested"
+    INITIAL_SCREENING_COMPLETED = "initial_screening_completed"
+    INTERVIEW_SCHEDULED = "interview_scheduled"
+    SELECTED = "selected"
+    REJECTED = "rejected"
 
 
 class Candidate(Base):

@@ -52,7 +52,7 @@ async def process_candidate_resume(
         # Check if a candidate with the same email or phone already exists
         existing_candidate = None
         if parsed_data.email or parsed_data.phone:
-            query = select(Candidate).where(Candidate.status == CandidateStatus.COMPLETED)
+            query = select(Candidate)
 
             if parsed_data.email and parsed_data.phone:
                 # Check for either email or phone match
@@ -90,7 +90,7 @@ async def process_candidate_resume(
             existing_candidate.designations = parsed_data.designations
             existing_candidate.domain_knowledge = parsed_data.domain_knowledge
             existing_candidate.raw_parsed_data = parsed_data.model_dump()
-            existing_candidate.status = CandidateStatus.COMPLETED
+            existing_candidate.status = CandidateStatus.UPLOADED
             existing_candidate.processed_at = datetime.utcnow()
             existing_candidate.error_message = None
 
@@ -122,7 +122,7 @@ async def process_candidate_resume(
                 filename=filename,
                 file_path=file_path,
                 file_size=file_size,
-                status=CandidateStatus.COMPLETED,
+                status=CandidateStatus.UPLOADED,
                 uploaded_by=uploaded_by,
                 name=parsed_data.name,
                 email=parsed_data.email,

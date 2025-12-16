@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 import os
 from app.db.base import get_db
-from app.schemas.candidate import Candidate as CandidateSchema, ParsedCandidateData
+from app.schemas.candidate import Candidate as CandidateSchema, ParsedCandidateData, CandidateUpdate
 from app.models.candidate import Candidate, CandidateStatus
 from app.models.user import User
 from app.core.deps import get_current_user, require_recruiter_or_above
@@ -223,6 +223,35 @@ async def download_candidate_resume(
     )
 
 
+@router.patch("/{candidate_id}", response_model=CandidateSchema)
+async def update_candidate(
+    candidate_id: int,
+    candidate_update: CandidateUpdate,
+    current_user: User = Depends(require_recruiter_or_above),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update candidate information including status. Requires Recruiter role or higher."""
+    result = await db.execute(select(Candidate).where(Candidate.id == candidate_id))
+    candidate = result.scalar_one_or_none()
+
+    if not candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate not found",
+        )
+
+    # Update fields if provided
+    update_data = candidate_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(candidate, field, value)
+
+    candidate.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(candidate)
+
+    return candidate
+
+
 @router.delete("/{candidate_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_candidate(
     candidate_id: int,
@@ -257,7 +286,6 @@ async def search_candidates_by_skill(
     """Search candidates by skill using case-insensitive partial matching"""
     result = await db.execute(
         select(Candidate)
-        .where(Candidate.status == CandidateStatus.COMPLETED)
         .where(func.lower(func.cast(Candidate.skills, String)).like(f'%{skill.lower()}%'))
         .order_by(Candidate.created_at.desc())
     )
