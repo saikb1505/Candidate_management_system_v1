@@ -9,6 +9,7 @@ import os
 from app.db.base import get_db
 from app.schemas.candidate import Candidate as CandidateSchema, ParsedCandidateData, CandidateUpdate
 from app.models.candidate import Candidate, CandidateStatus
+from app.models.candidate_note import CandidateNote
 from app.models.user import User
 from app.core.deps import get_current_user, require_recruiter_or_above
 from app.utils.file_handler import save_upload_file, extract_text_from_file, delete_file
@@ -240,12 +241,31 @@ async def update_candidate(
             detail="Candidate not found",
         )
 
+    # Store old status for note tracking
+    old_status = candidate.status
+
     # Update fields if provided
     update_data = candidate_update.model_dump(exclude_unset=True)
+
+    # Extract note if provided (don't set it on candidate)
+    note_text = update_data.pop("note", None)
+
     for field, value in update_data.items():
         setattr(candidate, field, value)
 
     candidate.updated_at = datetime.utcnow()
+
+    # If a note is provided, create a note entry
+    if note_text:
+        note = CandidateNote(
+            candidate_id=candidate_id,
+            user_id=current_user.id,
+            note=note_text,
+            previous_status=old_status.value if old_status else None,
+            new_status=candidate.status.value if candidate.status else None,
+        )
+        db.add(note)
+
     await db.commit()
     await db.refresh(candidate)
 

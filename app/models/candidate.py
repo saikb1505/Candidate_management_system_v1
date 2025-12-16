@@ -49,3 +49,4 @@ class Candidate(Base):
 
     # Relationships
     uploaded_by_user = relationship("User", back_populates="candidates")
+    notes = relationship("CandidateNote", back_populates="candidate", cascade="all, delete-orphan")

@@ -22,6 +22,7 @@ class CandidateUpdate(BaseModel):
     designations: Optional[List[str]] = None
     domain_knowledge: Optional[str] = None
     error_message: Optional[str] = None
+    note: Optional[str] = None  # Optional note when updating (especially useful for status changes)
 
 
 class CandidateInDB(CandidateBase):
