@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Text, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -26,8 +26,8 @@ class Candidate(Base):
     file_path = Column(String, nullable=False)
     file_size = Column(Integer, nullable=False)
     status = Column(
-        SQLEnum(CandidateStatus, values_callable=lambda x: [e.value for e in x]),
-        default=CandidateStatus.UPLOADED,
+        String(50),
+        default=CandidateStatus.UPLOADED.value,
         nullable=False
     )
 
